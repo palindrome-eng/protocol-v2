@@ -828,7 +828,6 @@ export type Order = {
 	price: BN;
 	baseAssetAmount: BN;
 	baseAssetAmountFilled: BN;
-	quoteAssetAmount: BN;
 	quoteAssetAmountFilled: BN;
 	direction: PositionDirection;
 	reduceOnly: boolean;
