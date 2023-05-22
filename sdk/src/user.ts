@@ -70,8 +70,8 @@ import {
 	getWorstCaseTokenAmounts,
 	isSpotPositionAvailable,
 } from './math/spotPosition';
-import { ENUM_UTILS } from '@drift/common';
 import { calculateLiveOracleTwap } from './math/oracles';
+import { getVariant } from '@drift-labs/sdk';
 
 export class User {
 	driftClient: DriftClient;
@@ -1819,8 +1819,8 @@ export class User {
 			(order) =>
 				!!order &&
 				order.marketIndex === targetMarketIndex &&
-				ENUM_UTILS.match(order.marketType, MarketType.PERP) &&
-				!ENUM_UTILS.match(order.direction, tradeSide)
+				isVariant(order.marketType, 'perp') &&
+				!isVariant(order.direction, getVariant(tradeSide))
 		);
 
 		const quoteValueToAdd =
@@ -1841,8 +1841,8 @@ export class User {
 				(order) =>
 					!!order &&
 					order.marketIndex === targetMarketIndex &&
-					ENUM_UTILS.match(order.marketType, MarketType.PERP) &&
-					ENUM_UTILS.match(order.direction, tradeSide)
+					isVariant(order.marketType, 'perp') &&
+					isVariant(order.direction, getVariant(tradeSide))
 			);
 
 			const quoteValueToSubtract =
