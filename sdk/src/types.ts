@@ -1,4 +1,4 @@
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { BN, ZERO } from '.';
 
 // # Utility Types / Enums / Constants
@@ -505,6 +505,18 @@ export type OrderActionRecord = {
 	oraclePrice: BN;
 };
 
+export type SwapRecord = {
+	ts: BN;
+	user: PublicKey;
+	amountOut: BN;
+	amountIn: BN;
+	outMarketIndex: number;
+	inMarketIndex: number;
+	outOraclePrice: BN;
+	inOraclePrice: BN;
+	fee: BN;
+};
+
 export type StateAccount = {
 	admin: PublicKey;
 	exchangeStatus: number;
@@ -645,6 +657,10 @@ export type SpotMarketAccount = {
 	nextFillRecordId: BN;
 	spotFeePool: PoolBalance;
 	totalSpotFee: BN;
+	totalSwapFee: BN;
+
+	flashLoanAmount: BN;
+	flashLoanInitialTokenAmount: BN;
 
 	ordersEnabled: boolean;
 };
@@ -801,6 +817,7 @@ export type UserAccount = {
 	totalWithdraws: BN;
 	totalSocialLoss: BN;
 	cumulativePerpFunding: BN;
+	cumulativeSpotFees: BN;
 	liquidationMarginFreed: BN;
 	lastActiveSlot: BN;
 	isMarginTradingEnabled: boolean;
@@ -933,10 +950,24 @@ export type TxParams = {
 	computeUnitsPrice?: number;
 };
 
+export class SwapReduceOnly {
+	static readonly In = { in: {} };
+	static readonly Out = { out: {} };
+}
+
 // # Misc Types
 export interface IWallet {
 	signTransaction(tx: Transaction): Promise<Transaction>;
 	signAllTransactions(txs: Transaction[]): Promise<Transaction[]>;
+	publicKey: PublicKey;
+}
+export interface IVersionedWallet {
+	signVersionedTransaction(
+		tx: VersionedTransaction
+	): Promise<VersionedTransaction>;
+	signAllVersionedTransactions(
+		txs: VersionedTransaction[]
+	): Promise<VersionedTransaction[]>;
 	publicKey: PublicKey;
 }
 

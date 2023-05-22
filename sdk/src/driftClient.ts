@@ -8,7 +8,10 @@ import {
 import bs58 from 'bs58';
 import {
 	ASSOCIATED_TOKEN_PROGRAM_ID,
-	Token,
+	createAssociatedTokenAccountInstruction,
+	createCloseAccountInstruction,
+	createInitializeAccountInstruction,
+	getAssociatedTokenAddress,
 	TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import {
@@ -39,6 +42,7 @@ import {
 	ModifyOrderParams,
 	PhoenixV1FulfillmentConfigAccount,
 	ModifyOrderPolicy,
+	SwapReduceOnly,
 } from './types';
 import * as anchor from '@coral-xyz/anchor';
 import driftIDL from './idl/drift.json';
@@ -113,6 +117,7 @@ import { isSpotPositionAvailable } from './math/spotPosition';
 import { calculateMarketMaxAvailableInsurance } from './math/market';
 import { fetchUserStatsAccount } from './accounts/fetch';
 import { castNumberToSpotPrecision } from './math/spotMarket';
+import { JupiterClient, Route, SwapMode } from './jupiter/jupiterClient';
 
 type RemainingAccountParams = {
 	userAccounts: UserAccount[];
@@ -719,9 +724,7 @@ export class DriftClient {
 
 		const state = this.getStateAccount();
 		if (!state.whitelistMint.equals(PublicKey.default)) {
-			const associatedTokenPublicKey = await Token.getAssociatedTokenAddress(
-				ASSOCIATED_TOKEN_PROGRAM_ID,
-				TOKEN_PROGRAM_ID,
+			const associatedTokenPublicKey = await getAssociatedTokenAddress(
 				state.whitelistMint,
 				this.wallet.publicKey
 			);
@@ -1488,12 +1491,31 @@ export class DriftClient {
 			return this.wallet.publicKey;
 		}
 		const mint = spotMarket.mint;
-		return await Token.getAssociatedTokenAddress(
-			ASSOCIATED_TOKEN_PROGRAM_ID,
-			TOKEN_PROGRAM_ID,
-			mint,
-			this.wallet.publicKey
-		);
+		return await getAssociatedTokenAddress(mint, this.wallet.publicKey);
+	}
+
+	public createAssociatedTokenAccountIdempotentInstruction(
+		account: PublicKey,
+		payer: PublicKey,
+		owner: PublicKey,
+		mint: PublicKey
+	): TransactionInstruction {
+		return new TransactionInstruction({
+			keys: [
+				{ pubkey: payer, isSigner: true, isWritable: true },
+				{ pubkey: account, isSigner: false, isWritable: true },
+				{ pubkey: owner, isSigner: false, isWritable: false },
+				{ pubkey: mint, isSigner: false, isWritable: false },
+				{
+					pubkey: anchor.web3.SystemProgram.programId,
+					isSigner: false,
+					isWritable: false,
+				},
+				{ pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+			],
+			programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+			data: Buffer.from([0x1]),
+		});
 	}
 
 	/**
@@ -1557,8 +1579,7 @@ export class DriftClient {
 		// Close the wrapped sol account at the end of the transaction
 		if (createWSOLTokenAccount) {
 			tx.add(
-				Token.createCloseAccountInstruction(
-					TOKEN_PROGRAM_ID,
+				createCloseAccountInstruction(
 					associatedTokenAccount,
 					signerAuthority,
 					signerAuthority,
@@ -1671,10 +1692,9 @@ export class DriftClient {
 		);
 
 		result.ixs.push(
-			Token.createInitAccountInstruction(
-				TOKEN_PROGRAM_ID,
-				WRAPPED_SOL_MINT,
+			createInitializeAccountInstruction(
 				wrappedSolAccount.publicKey,
+				WRAPPED_SOL_MINT,
 				authority
 			)
 		);
@@ -1688,17 +1708,12 @@ export class DriftClient {
 		tokenMintAddress: PublicKey,
 		associatedTokenAddress: PublicKey
 	): anchor.web3.TransactionInstruction {
-		const createAssociatedAccountIx =
-			Token.createAssociatedTokenAccountInstruction(
-				ASSOCIATED_TOKEN_PROGRAM_ID,
-				TOKEN_PROGRAM_ID,
-				tokenMintAddress,
-				associatedTokenAddress,
-				this.wallet.publicKey,
-				this.wallet.publicKey
-			);
-
-		return createAssociatedAccountIx;
+		return createAssociatedTokenAccountInstruction(
+			this.wallet.publicKey,
+			associatedTokenAddress,
+			this.wallet.publicKey,
+			tokenMintAddress
+		);
 	}
 
 	/**
@@ -1800,8 +1815,7 @@ export class DriftClient {
 		// Close the wrapped sol account at the end of the transaction
 		if (createWSOLTokenAccount) {
 			tx.add(
-				Token.createCloseAccountInstruction(
-					TOKEN_PROGRAM_ID,
+				createCloseAccountInstruction(
 					userTokenAccount,
 					authority,
 					authority,
@@ -1940,8 +1954,7 @@ export class DriftClient {
 		// Close the wrapped sol account at the end of the transaction
 		if (createWSOLTokenAccount) {
 			tx.add(
-				Token.createCloseAccountInstruction(
-					TOKEN_PROGRAM_ID,
+				createCloseAccountInstruction(
 					associatedTokenAddress,
 					authority,
 					authority,
@@ -3264,6 +3277,240 @@ export class DriftClient {
 			isWritable: false,
 			isSigner: false,
 		});
+	}
+
+	/**
+	 * Swap tokens in drift account using jupiter
+	 * @param jupiterClient jupiter client to find routes and jupiter instructions
+	 * @param outMarketIndex the market index of the token you're buying
+	 * @param inMarketIndex the market index of the token you're selling
+	 * @param outAssociatedTokenAccount the token account to receive the token being sold on jupiter
+	 * @param inAssociatedTokenAccount the token account to
+	 * @param amount the amount of the token to sell
+	 * @param slippageBps the max slippage passed to jupiter api
+	 * @param route the jupiter route to use for the swap
+	 * @param txParams
+	 */
+	public async swap({
+		jupiterClient,
+		outMarketIndex,
+		inMarketIndex,
+		outAssociatedTokenAccount,
+		inAssociatedTokenAccount,
+		amount,
+		slippageBps,
+		swapMode,
+		route,
+		reduceOnly,
+		txParams,
+	}: {
+		jupiterClient: JupiterClient;
+		outMarketIndex: number;
+		inMarketIndex: number;
+		outAssociatedTokenAccount?: PublicKey;
+		inAssociatedTokenAccount?: PublicKey;
+		amount: BN;
+		slippageBps?: number;
+		swapMode?: SwapMode;
+		route?: Route;
+		reduceOnly?: SwapReduceOnly;
+		txParams?: TxParams;
+	}): Promise<TransactionSignature> {
+		const outMarket = this.getSpotMarketAccount(outMarketIndex);
+		const inMarket = this.getSpotMarketAccount(inMarketIndex);
+
+		if (!route) {
+			const routes = await jupiterClient.getRoutes({
+				inputMint: inMarket.mint,
+				outputMint: outMarket.mint,
+				amount,
+				slippageBps,
+				swapMode,
+			});
+
+			if (!routes || routes.length === 0) {
+				throw new Error('No jupiter routes found');
+			}
+
+			route = routes[0];
+		}
+
+		const transaction = await jupiterClient.getSwapTransaction({
+			route,
+			userPublicKey: this.provider.wallet.publicKey,
+			slippageBps,
+		});
+
+		const { transactionMessage, lookupTables } =
+			await jupiterClient.getTransactionMessageAndLookupTables({
+				transaction,
+			});
+
+		const jupiterInstructions = jupiterClient.getJupiterInstructions({
+			transactionMessage,
+			inputMint: inMarket.mint,
+			outputMint: outMarket.mint,
+		});
+
+		const preInstructions = [];
+		if (!outAssociatedTokenAccount) {
+			outAssociatedTokenAccount = await this.getAssociatedTokenAccount(
+				outMarket.marketIndex,
+				false
+			);
+
+			const accountInfo = await this.connection.getAccountInfo(
+				outAssociatedTokenAccount
+			);
+			if (!accountInfo) {
+				preInstructions.push(
+					this.createAssociatedTokenAccountIdempotentInstruction(
+						outAssociatedTokenAccount,
+						this.provider.wallet.publicKey,
+						this.provider.wallet.publicKey,
+						outMarket.mint
+					)
+				);
+			}
+		}
+
+		if (!inAssociatedTokenAccount) {
+			inAssociatedTokenAccount = await this.getAssociatedTokenAccount(
+				inMarket.marketIndex,
+				false
+			);
+
+			const accountInfo = await this.connection.getAccountInfo(
+				inAssociatedTokenAccount
+			);
+			if (!accountInfo) {
+				preInstructions.push(
+					this.createAssociatedTokenAccountIdempotentInstruction(
+						inAssociatedTokenAccount,
+						this.provider.wallet.publicKey,
+						this.provider.wallet.publicKey,
+						inMarket.mint
+					)
+				);
+			}
+		}
+
+		const { beginSwapIx, endSwapIx } = await this.getSwapIx({
+			outMarketIndex,
+			inMarketIndex,
+			amountIn: amount,
+			inTokenAccount: inAssociatedTokenAccount,
+			outTokenAccount: outAssociatedTokenAccount,
+			reduceOnly,
+		});
+
+		const instructions = [
+			...preInstructions,
+			beginSwapIx,
+			...jupiterInstructions,
+			endSwapIx,
+		];
+
+		const tx = await this.buildTransaction(
+			instructions,
+			txParams,
+			0,
+			lookupTables
+		);
+
+		const { txSig, slot } = await this.sendTransaction(tx);
+		this.spotMarketLastSlotCache.set(outMarketIndex, slot);
+		this.spotMarketLastSlotCache.set(inMarketIndex, slot);
+
+		return txSig;
+	}
+
+	/**
+	 * Get the drift begin_swap and end_swap instructions
+	 *
+	 * @param outMarketIndex the market index of the token you're buying
+	 * @param inMarketIndex the market index of the token you're selling
+	 * @param amountIn the amount of the token to sell
+	 * @param inTokenAccount the token account to move the tokens being sold
+	 * @param outTokenAccount the token account to receive the tokens being bought
+	 * @param limitPrice the limit price of the swap
+	 */
+	public async getSwapIx({
+		outMarketIndex,
+		inMarketIndex,
+		amountIn,
+		inTokenAccount,
+		outTokenAccount,
+		limitPrice,
+		reduceOnly,
+	}: {
+		outMarketIndex: number;
+		inMarketIndex: number;
+		amountIn: BN;
+		inTokenAccount: PublicKey;
+		outTokenAccount: PublicKey;
+		limitPrice?: BN;
+		reduceOnly?: SwapReduceOnly;
+	}): Promise<{
+		beginSwapIx: TransactionInstruction;
+		endSwapIx: TransactionInstruction;
+	}> {
+		const userAccountPublicKey = await this.getUserAccountPublicKey();
+
+		const remainingAccounts = this.getRemainingAccounts({
+			userAccounts: [this.getUserAccount()],
+			writableSpotMarketIndexes: [outMarketIndex, inMarketIndex],
+		});
+
+		const outSpotMarket = this.getSpotMarketAccount(outMarketIndex);
+		const inSpotMarket = this.getSpotMarketAccount(inMarketIndex);
+
+		const beginSwapIx = await this.program.instruction.beginSwap(
+			inMarketIndex,
+			outMarketIndex,
+			amountIn,
+			{
+				accounts: {
+					state: await this.getStatePublicKey(),
+					user: userAccountPublicKey,
+					userStats: this.getUserStatsAccountPublicKey(),
+					authority: this.authority,
+					outSpotMarketVault: outSpotMarket.vault,
+					inSpotMarketVault: inSpotMarket.vault,
+					inTokenAccount,
+					outTokenAccount,
+					tokenProgram: TOKEN_PROGRAM_ID,
+					driftSigner: this.getStateAccount().signer,
+					instructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+				},
+				remainingAccounts,
+			}
+		);
+
+		const endSwapIx = await this.program.instruction.endSwap(
+			inMarketIndex,
+			outMarketIndex,
+			limitPrice ?? null,
+			reduceOnly ?? null,
+			{
+				accounts: {
+					state: await this.getStatePublicKey(),
+					user: userAccountPublicKey,
+					userStats: this.getUserStatsAccountPublicKey(),
+					authority: this.authority,
+					outSpotMarketVault: outSpotMarket.vault,
+					inSpotMarketVault: inSpotMarket.vault,
+					inTokenAccount,
+					outTokenAccount,
+					tokenProgram: TOKEN_PROGRAM_ID,
+					driftSigner: this.getStateAccount().signer,
+					instructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+				},
+				remainingAccounts,
+			}
+		);
+
+		return { beginSwapIx, endSwapIx };
 	}
 
 	public async triggerOrder(
@@ -4769,8 +5016,7 @@ export class DriftClient {
 
 		if (createWSOLTokenAccount) {
 			tx.add(
-				Token.createCloseAccountInstruction(
-					TOKEN_PROGRAM_ID,
+				createCloseAccountInstruction(
 					tokenAccount,
 					this.wallet.publicKey,
 					this.wallet.publicKey,
@@ -4920,8 +5166,7 @@ export class DriftClient {
 		// Close the wrapped sol account at the end of the transaction
 		if (createWSOLTokenAccount) {
 			tx.add(
-				Token.createCloseAccountInstruction(
-					TOKEN_PROGRAM_ID,
+				createCloseAccountInstruction(
 					tokenAccount,
 					this.wallet.publicKey,
 					this.wallet.publicKey,
@@ -5094,7 +5339,9 @@ export class DriftClient {
 
 	async buildTransaction(
 		instructions: TransactionInstruction | TransactionInstruction[],
-		txParams?: TxParams
+		txParams?: TxParams,
+		txVersion?: TransactionVersion,
+		lookupTables?: AddressLookupTableAccount[]
 	): Promise<Transaction | VersionedTransaction> {
 		const allIx = [];
 		const computeUnits = txParams?.computeUnits ?? 600_000;
@@ -5120,10 +5367,14 @@ export class DriftClient {
 			allIx.push(instructions);
 		}
 
-		if (this.txVersion === 'legacy') {
+		txVersion = txVersion ?? this.txVersion;
+		if (txVersion === 'legacy') {
 			return new Transaction().add(...allIx);
 		} else {
 			const marketLookupTable = await this.fetchMarketLookupTableAccount();
+			lookupTables = lookupTables
+				? [...lookupTables, marketLookupTable]
+				: [marketLookupTable];
 			const message = new TransactionMessage({
 				payerKey: this.provider.wallet.publicKey,
 				recentBlockhash: (
@@ -5132,7 +5383,7 @@ export class DriftClient {
 					)
 				).blockhash,
 				instructions: allIx,
-			}).compileToV0Message([marketLookupTable]);
+			}).compileToV0Message(lookupTables);
 
 			return new VersionedTransaction(message);
 		}
