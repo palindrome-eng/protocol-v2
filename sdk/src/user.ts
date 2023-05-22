@@ -70,7 +70,7 @@ import {
 	getWorstCaseTokenAmounts,
 	isSpotPositionAvailable,
 } from './math/spotPosition';
-
+import { ENUM_UTILS } from '@drift/common';
 import { calculateLiveOracleTwap } from './math/oracles';
 
 export class User {
@@ -1813,6 +1813,58 @@ export class User {
 			: this.getPerpPositionValue(targetMarketIndex, oracleData);
 
 		let maxPositionSize = this.getPerpBuyingPower(targetMarketIndex);
+
+		// if orders of the opposite direction are open, we can add that value back to maxPositionSize
+		const oppositeOrdersInMarket = this.getOpenOrders().filter(
+			(order) =>
+				!!order &&
+				order.marketIndex === targetMarketIndex &&
+				ENUM_UTILS.match(order.marketType, MarketType.PERP) &&
+				!ENUM_UTILS.match(order.direction, tradeSide)
+		);
+
+		const quoteValueToAdd =
+			oppositeOrdersInMarket.length > 0
+				? oppositeOrdersInMarket.reduce((quoteAmount, order) => {
+						return quoteAmount.add(
+							order.baseAssetAmount
+								.sub(order.baseAssetAmountFilled)
+								.mul(order.price)
+								.div(BASE_PRECISION)
+						);
+				  }, ZERO)
+				: ZERO;
+
+		if (quoteValueToAdd.gt(ZERO)) {
+			// if we add that leverage, we then have to subtract orders on the same side or a user could get over-levered
+			const sameSideOrdersInMarket = this.getOpenOrders().filter(
+				(order) =>
+					!!order &&
+					order.marketIndex === targetMarketIndex &&
+					ENUM_UTILS.match(order.marketType, MarketType.PERP) &&
+					ENUM_UTILS.match(order.direction, tradeSide)
+			);
+
+			const quoteValueToSubtract =
+				oppositeOrdersInMarket.length > 0
+					? sameSideOrdersInMarket.reduce((quoteAmount, order) => {
+							return quoteAmount.add(
+								order.baseAssetAmount
+									.sub(order.baseAssetAmountFilled)
+									.mul(order.price)
+									.div(BASE_PRECISION)
+							);
+					  }, ZERO)
+					: ZERO;
+
+			const netValueToAdd = BN.max(
+				ZERO,
+				quoteValueToAdd.sub(quoteValueToSubtract)
+			);
+
+			maxPositionSize = maxPositionSize.add(netValueToAdd);
+		}
+
 		if (maxPositionSize.gte(ZERO)) {
 			if (oppositeSizeValueUSDC.eq(ZERO)) {
 				// case 1 : Regular trade where current total position less than max, and no opposite position to account for
