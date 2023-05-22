@@ -4,6 +4,7 @@ import StrictEventEmitter from 'strict-event-emitter-types';
 import { DriftClient } from './driftClient';
 import {
 	isVariant,
+	getVariant,
 	MarginCategory,
 	Order,
 	UserAccount,
@@ -71,7 +72,6 @@ import {
 	isSpotPositionAvailable,
 } from './math/spotPosition';
 import { calculateLiveOracleTwap } from './math/oracles';
-import { getVariant } from '@drift-labs/sdk';
 
 export class User {
 	driftClient: DriftClient;
