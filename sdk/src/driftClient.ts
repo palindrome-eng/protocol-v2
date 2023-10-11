@@ -4093,7 +4093,8 @@ export class DriftClient {
 		orderParams: OptionalOrderParams,
 		makerInfo?: MakerInfo | MakerInfo[],
 		referrerInfo?: ReferrerInfo,
-		txParams?: TxParams
+		txParams?: TxParams,
+		txVersion?: TransactionVersion
 	): Promise<TransactionSignature> {
 		const { txSig, slot } = await this.sendTransaction(
 			await this.buildTransaction(
@@ -4102,7 +4103,8 @@ export class DriftClient {
 					makerInfo,
 					referrerInfo
 				),
-				txParams
+				txParams,
+				txVersion
 			),
 			[],
 			this.opts
@@ -5850,10 +5852,10 @@ export class DriftClient {
 		tx: Transaction | VersionedTransaction,
 		additionalSigners?: Array<Signer>,
 		opts?: ConfirmOptions,
-		preSigned?: boolean
+		preSigned?: boolean,
+		txVersion?: TransactionVersion,
 	): Promise<TxSigAndSlot> {
-		// @ts-ignore
-		if (!tx.message) {
+		if (txVersion === 'legacy') {
 			return this.txSender.send(
 				tx as Transaction,
 				additionalSigners,
