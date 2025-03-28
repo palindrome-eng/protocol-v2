@@ -151,6 +151,8 @@ pub fn handle_initialize_spot_market(
     let spot_market_index = get_then_update_id!(state, number_of_spot_markets);
 
     msg!("initializing spot market {}", spot_market_index);
+    msg!("default: {}", Pubkey::default());
+    msg!("provided: {}", ctx.accounts.oracle.key);
 
     if oracle_source == OracleSource::QuoteAsset {
         // catches inconsistent parameters
@@ -163,11 +165,15 @@ pub fn handle_initialize_spot_market(
         OracleMap::validate_oracle_account_info(&ctx.accounts.oracle)?;
     }
 
+    msg!("here 1");
+
     let oracle_price_data = get_oracle_price(
         &oracle_source,
         &ctx.accounts.oracle,
         Clock::get()?.unix_timestamp.cast()?,
     );
+
+    msg!("here 2");
 
     let (historical_oracle_data_default, historical_index_data_default) =
         if spot_market_index == QUOTE_SPOT_MARKET_INDEX {
@@ -188,6 +194,8 @@ pub fn handle_initialize_spot_market(
                 ErrorCode::InvalidSpotMarketInitialization,
                 "For quote asset spot market, mint decimals must be 6"
             )?;
+
+            msg!("here abc");
 
             (
                 HistoricalOracleData::default_quote_oracle(),
@@ -213,6 +221,8 @@ pub fn handle_initialize_spot_market(
             )
         };
 
+    msg!("here 3");
+
     validate_margin_weights(
         spot_market_index,
         initial_asset_weight,
@@ -222,7 +232,9 @@ pub fn handle_initialize_spot_market(
         imf_factor,
     )?;
 
+    msg!("here 4.5");
     let spot_market = &mut ctx.accounts.spot_market.load_init()?;
+    msg!("here 5");
     let clock = Clock::get()?;
     let now = clock
         .unix_timestamp
@@ -240,6 +252,8 @@ pub fn handle_initialize_spot_market(
         return Err(ErrorCode::DefaultError.into());
     };
 
+    msg!("here 6");
+
     if active_status {
         validate!(
             ctx.accounts.admin.key() == state.admin,
@@ -247,6 +261,8 @@ pub fn handle_initialize_spot_market(
             "admin must be state admin"
         )?;
     }
+
+    msg!("here 7");
 
     **spot_market = SpotMarket {
         market_index: spot_market_index,
@@ -329,6 +345,8 @@ pub fn handle_initialize_spot_market(
             ..InsuranceFund::default()
         },
     };
+
+    msg!("here 8");
 
     Ok(())
 }

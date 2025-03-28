@@ -10,6 +10,7 @@
 		"@project-serum/common": "0.0.1-beta.3",
 		"@project-serum/serum": "0.13.65",
 		"@pythnetwork/client": "2.21.0",
+		"@pythnetwork/price-service-client": "1.9.0",
 		"@solana/spl-token": "0.3.7",
 		"@solana/web3.js": "1.73.2",
 		"@types/bn.js": "5.1.6",
@@ -24,21 +25,24 @@
 		"husky": "7.0.4",
 		"prettier": "3.0.1",
 		"typedoc": "0.23.23",
-		"typescript": "4.9.5",
-		"@pythnetwork/price-service-client": "1.9.0"
+		"typescript": "4.9.5"
 	},
 	"dependencies": {
+		"@drift-labs/sdk": "2.117.0-beta.5",
 		"@ellipsis-labs/phoenix-sdk": "1.4.2",
+		"@grpc/grpc-js": "^1.13.1",
 		"@pythnetwork/pyth-solana-receiver": "0.8.0",
 		"@switchboard-xyz/on-demand": "2.3.2",
-		"anchor-bankrun": "0.3.0",
+		"anchor-bankrun": "^0.5.0",
+		"axios": "^1.8.4",
 		"chai-bn": "0.2.2",
 		"csvtojson": "2.0.10",
 		"dotenv": "16.4.5",
 		"json2csv": "5.0.7",
+		"litesvm": "^0.2.0",
 		"nanoid": "3.3.4",
-		"rpc-websockets": "7.5.1",
-		"solana-bankrun": "0.3.0",
+		"rpc-websockets": "7.11.0",
+		"solana-bankrun": "^0.4.0",
 		"zstddec": "0.1.0"
 	},
 	"scripts": {
@@ -48,7 +52,8 @@
 		"prettify:fix": "prettier --write './sdk/src/**/*.ts' './tests/**.ts' './cli/**.ts'",
 		"lint": "eslint . --ext ts --quiet",
 		"lint:fix": "eslint . --ext ts --fix",
-		"update-idl": "cp target/idl/drift.json sdk/src/idl/drift.json"
+		"update-idl": "cp target/idl/drift.json sdk/src/idl/drift.json",
+		"prepare-sim-env": "solana-test-validator --bpf-program J1TnP8zvVxbtF5KFp5xRmWuvG9McnhzmBd9XGfCyuxFP ./program-dumps/jit.so --bpf-program dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH ./target/deploy/drift.so --bpf-program FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH ./target/deploy/pyth.so"
 	},
 	"engines": {
 		"node": ">=12"
