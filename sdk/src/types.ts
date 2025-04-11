@@ -178,6 +178,12 @@ export class OrderStatus {
 	static readonly CANCELED = { canceled: {} };
 }
 
+export class OrderBitFlag {
+	static readonly SignedMessage = 1;
+	static readonly OracleTriggerMarket = 2;
+	static readonly SafeTriggerOrder = 4;
+}
+
 export class OrderAction {
 	static readonly PLACE = { place: {} };
 	static readonly CANCEL = { cancel: {} };
@@ -617,6 +623,7 @@ export type OrderActionRecord = {
 	makerOrderCumulativeBaseAssetAmountFilled: BN | null;
 	makerOrderCumulativeQuoteAssetAmountFilled: BN | null;
 	oraclePrice: BN;
+	bitFlags: number;
 };
 
 export type SwapRecord = {

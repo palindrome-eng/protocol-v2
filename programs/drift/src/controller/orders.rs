@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut};
 use std::u64;
 
+use crate::msg;
 use anchor_lang::prelude::*;
-use solana_program::msg;
 
 use crate::controller::funding::settle_funding_payment;
 use crate::controller::lp::burn_lp_shares;
@@ -71,7 +71,7 @@ use crate::state::state::FeeStructure;
 use crate::state::state::*;
 use crate::state::traits::Size;
 use crate::state::user::{
-    AssetType, Order, OrderStatus, OrderTriggerCondition, OrderType, UserStats,
+    AssetType, Order, OrderBitFlag, OrderStatus, OrderTriggerCondition, OrderType, UserStats,
 };
 use crate::state::user::{MarketType, User};
 use crate::state::user_map::{UserMap, UserStatsMap};
@@ -228,8 +228,12 @@ pub fn place_perp_order(
 
     // updates auction params for crossing limit orders w/out auction duration
     // dont modify if it's a liquidation
-    if !options.is_liquidation() && !options.is_signed_msg_order() {
-        params.update_perp_auction_params(market, oracle_price_data.price)?;
+    if !options.is_liquidation() {
+        params.update_perp_auction_params(
+            market,
+            oracle_price_data.price,
+            options.is_signed_msg_order(),
+        )?;
     }
 
     let (auction_start_price, auction_end_price, auction_duration) = get_auction_params(
@@ -403,6 +407,7 @@ pub fn place_perp_order(
         maker,
         maker_order,
         oracle_map.get_price_data(&market.oracle_id())?.price,
+        bit_flags,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -677,6 +682,7 @@ pub fn cancel_order(
             maker,
             maker_order,
             oracle_map.get_price_data(&oracle_id)?.price,
+            0,
         )?;
         emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
     }
@@ -945,7 +951,6 @@ pub fn fill_perp_order(
         order_oracle_price_offset,
         order_direction,
         order_auction_duration,
-        order_posted_slot_tail,
     ) = get_struct_values!(
         user.orders[order_index],
         status,
@@ -954,8 +959,7 @@ pub fn fill_perp_order(
         price,
         oracle_price_offset,
         direction,
-        auction_duration,
-        posted_slot_tail
+        auction_duration
     );
 
     validate!(
@@ -1229,17 +1233,9 @@ pub fn fill_perp_order(
         return Ok((0, 0));
     }
 
-    let clock_slot_tail = get_posted_slot_from_clock_slot(slot);
-
     let amm_availability = if amm_is_available {
         if amm_can_skip_duration && user_can_skip_duration {
             AMMAvailability::Immediate
-        } else if !user_can_skip_duration
-            && (clock_slot_tail.wrapping_sub(order_posted_slot_tail)
-                < state.min_perp_auction_duration)
-        {
-            msg!("Overriding amm to unavailable for user atomic fill");
-            AMMAvailability::Unavailable
         } else {
             AMMAvailability::AfterMinDuration
         }
@@ -1662,6 +1658,10 @@ fn get_referrer_info(
         }
 
         if referrer.sub_account_id == 0 {
+            if referrer.pool_id != 0 {
+                return Ok(None);
+            }
+
             referrer.update_last_active_slot(slot);
             referrer_user_key = *referrer_key;
             break;
@@ -2333,6 +2333,11 @@ pub fn fulfill_perp_order_with_amm(
         (Some(_), Some(_)) => liquidity_split.get_order_action_explanation(),
         _ => OrderActionExplanation::OrderFilledWithAMM,
     };
+    let mut order_action_bit_flags: u8 = 0;
+    order_action_bit_flags = set_is_signed_msg_flag(
+        order_action_bit_flags,
+        user.orders[order_index].is_signed_msg(),
+    );
     let order_action_record = get_order_action_record(
         now,
         OrderAction::Fill,
@@ -2357,6 +2362,7 @@ pub fn fulfill_perp_order_with_amm(
         maker,
         maker_order,
         oracle_map.get_price_data(&market.oracle_id())?.price,
+        order_action_bit_flags,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -2752,6 +2758,11 @@ pub fn fulfill_perp_order_with_match(
     } else {
         OrderActionExplanation::OrderFilledWithMatch
     };
+    let mut order_action_bit_flags = 0;
+    order_action_bit_flags = set_is_signed_msg_flag(
+        order_action_bit_flags,
+        taker.orders[taker_order_index].is_signed_msg(),
+    );
     let order_action_record = get_order_action_record(
         now,
         OrderAction::Fill,
@@ -2772,6 +2783,7 @@ pub fn fulfill_perp_order_with_match(
         Some(*maker_key),
         Some(maker.orders[maker_order_index]),
         oracle_map.get_price_data(&market.oracle_id())?.price,
+        order_action_bit_flags,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -2938,7 +2950,7 @@ pub fn trigger_order(
             &mut user.orders[order_index],
             oracle_price_data,
             slot,
-            30,
+            20,
             Some(&perp_market),
         )?;
 
@@ -2988,6 +3000,7 @@ pub fn trigger_order(
         None,
         None,
         oracle_price,
+        0,
     )?;
     emit!(order_action_record);
 
@@ -3042,6 +3055,10 @@ fn update_trigger_order_params(
         }
     };
 
+    if slot.saturating_sub(order.slot) > 150 && order.reduce_only {
+        order.add_bit_flag(OrderBitFlag::SafeTriggerOrder);
+    }
+
     order.slot = slot;
 
     let (auction_duration, auction_start_price, auction_end_price) =
@@ -3062,6 +3079,10 @@ fn update_trigger_order_params(
     order.auction_duration = auction_duration;
     order.auction_start_price = auction_start_price;
     order.auction_end_price = auction_end_price;
+
+    if matches!(order.order_type, OrderType::TriggerMarket) {
+        order.add_bit_flag(OrderBitFlag::OracleTriggerMarket);
+    }
 
     Ok(())
 }
@@ -3649,6 +3670,7 @@ pub fn place_spot_order(
         maker,
         maker_order,
         oracle_price_data.price,
+        0,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -4875,6 +4897,7 @@ pub fn fulfill_spot_order_with_match(
         Some(*maker_key),
         Some(maker.orders[maker_order_index]),
         oracle_map.get_price_data(&base_market.oracle_id())?.price,
+        0,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -5140,6 +5163,7 @@ pub fn fulfill_spot_order_with_external_market(
         None,
         None,
         oracle_price,
+        0,
     )?;
     emit_stack::<_, { OrderActionRecord::SIZE }>(order_action_record)?;
 
@@ -5280,7 +5304,7 @@ pub fn trigger_spot_order(
             &mut user.orders[order_index],
             oracle_price_data,
             slot,
-            30,
+            20,
             None,
         )?;
 
@@ -5331,6 +5355,7 @@ pub fn trigger_spot_order(
         None,
         None,
         oracle_price,
+        0,
     )?;
 
     emit!(order_action_record);

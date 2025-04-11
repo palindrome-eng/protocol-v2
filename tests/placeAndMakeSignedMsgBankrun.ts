@@ -423,7 +423,7 @@ describe('place and make signedMsg order', () => {
 		await takerDriftClient.unsubscribe();
 	});
 
-	it('should work with pyth lazer crank and filling against vamm in one tx', async () => {
+	it('should not work with pyth lazer crank and filling against vamm in one tx', async () => {
 		const slot = new BN(
 			await bankrunContextWrapper.connection.toConnection().getSlot()
 		);
@@ -606,10 +606,7 @@ describe('place and make signedMsg order', () => {
 
 		await takerDriftClient.fetchAccounts();
 		assert(
-			takerDriftClient
-				.getUser()
-				.getPerpPosition(0)
-				.baseAssetAmount.eq(BASE_PRECISION)
+			takerDriftClient.getUser().getPerpPosition(0).baseAssetAmount.eq(ZERO)
 		);
 
 		await takerDriftClientUser.unsubscribe();

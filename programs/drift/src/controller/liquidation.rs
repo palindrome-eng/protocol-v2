@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
+use crate::msg;
 use anchor_lang::prelude::*;
-use solana_program::msg;
 
 use crate::controller::amm::get_fee_pool_tokens;
 use crate::controller::funding::settle_funding_payment;
@@ -665,6 +665,7 @@ pub fn liquidate_perp(
         maker_order_cumulative_base_asset_amount_filled: Some(base_asset_amount),
         maker_order_cumulative_quote_asset_amount_filled: Some(base_asset_value),
         oracle_price,
+        bit_flags: 0,
     };
     emit!(fill_record);
 
