@@ -3,7 +3,7 @@ import {
     BulkAccountLoader,
     DRIFT_PROGRAM_ID,
     DriftClient,
-    getDriftStateAccountPublicKey,
+    getDriftStateAccountPublicKey, getUserAccountPublicKey,
     TestClient, WRAPPED_SOL_MINT
 } from "@drift-labs/sdk";
 import {Connection, Keypair, LAMPORTS_PER_SOL, PublicKey} from "@solana/web3.js";
@@ -27,6 +27,8 @@ import updateSpotMarketOracle from "../utils/updateOracle";
 import mintTokens from "../utils/mintTokens";
 import createLookupTables from "../utils/createLookupTables";
 import {getAssociatedTokenAddressSync} from "@solana/spl-token";
+import {Bot} from "../bots/trading-bot";
+import { Reflect } from "@reflectcx/delta-neutral";
 
 const localConnection = new Connection("http://localhost:8899");
 const mainnetConnection = new Connection(RPC_URL);
@@ -216,6 +218,24 @@ export default async function main() {
             }
         ]);
 
+        console.log("Creating Drift filler bot.");
+        const driftBot = new Bot();
+
+        console.log("Depositing collateral for filling perp orders.");
+        const collateralTx = await driftBot.depositCollateral(
+            0,
+            WRAPPED_SOL_MINT,
+            new BN(50_000).mul(new BN(LAMPORTS_PER_SOL))
+        );
+        console.log(`Deposited collateral: ${collateralTx}`);
+
+        await driftBot.listenToUserOrders(
+            Reflect.deriveDriftAdapter(Reflect.deriveDexBase()),
+            ({ userAccount, userAccountPubkey, order }) => {
+                console.log(`New order of size ${order.baseAssetAmount.toString()} by ${userAccountPubkey.toString()} detected. Filling order.`);
+                driftBot.fillOrder({ userAccountPubkey, order, userAccount });
+            }
+        );
     } catch (err) {
         console.error(err);
         throw err;

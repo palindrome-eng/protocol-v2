@@ -152,6 +152,36 @@
     yargs "17.7.2"
     zstddec "0.1.0"
 
+"@drift-labs/sdk@^2.117.0-beta.6":
+  version "2.117.0-beta.9"
+  resolved "https://registry.yarnpkg.com/@drift-labs/sdk/-/sdk-2.117.0-beta.9.tgz#89142c1dd8c09c69f78f4e59d42d87ee435e23e2"
+  integrity sha512-oZrZ7F0AxR9w8l527jHRoEXfrc70LoAWhY/nS0iVnJOaHPlqQgaO9f3JcZdP1kQwpp2G/E+ymbiuApWXg8PcHA==
+  dependencies:
+    "@coral-xyz/anchor" "0.29.0"
+    "@coral-xyz/anchor-30" "npm:@coral-xyz/anchor@0.30.1"
+    "@ellipsis-labs/phoenix-sdk" "1.4.5"
+    "@grpc/grpc-js" "1.12.6"
+    "@openbook-dex/openbook-v2" "0.2.10"
+    "@project-serum/serum" "0.13.65"
+    "@pythnetwork/client" "2.5.3"
+    "@pythnetwork/price-service-sdk" "1.7.1"
+    "@pythnetwork/pyth-solana-receiver" "0.7.0"
+    "@solana/spl-token" "0.3.7"
+    "@solana/web3.js" "1.92.3"
+    "@switchboard-xyz/on-demand" "2.4.0"
+    "@triton-one/yellowstone-grpc" "1.3.0"
+    anchor-bankrun "0.3.0"
+    nanoid "3.3.4"
+    node-cache "5.1.2"
+    rpc-websockets "7.5.1"
+    solana-bankrun "0.3.1"
+    strict-event-emitter-types "2.0.0"
+    tweetnacl "1.0.3"
+    tweetnacl-util "0.15.1"
+    uuid "8.3.2"
+    yargs "17.7.2"
+    zstddec "0.1.0"
+
 "@ellipsis-labs/phoenix-sdk@1.4.2":
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/@ellipsis-labs/phoenix-sdk/-/phoenix-sdk-1.4.2.tgz#3bfe987f00141924e629fb802ca9c1b8c932ebdb"
@@ -263,7 +293,17 @@
     bs58 "^5.0.0"
     debug "^4.3.4"
 
-"@metaplex-foundation/beet@>=0.1.0", "@metaplex-foundation/beet@^0.7.1":
+"@metaplex-foundation/beet-solana@^0.4.0", "@metaplex-foundation/beet-solana@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@metaplex-foundation/beet-solana/-/beet-solana-0.4.1.tgz#255747aa7feee1c20202146a752c057feca1948f"
+  integrity sha512-/6o32FNUtwK8tjhotrvU/vorP7umBuRFvBZrC6XCk51aKidBHe5LPVPA5AjGPbV3oftMfRuXPNd9yAGeEqeCDQ==
+  dependencies:
+    "@metaplex-foundation/beet" ">=0.1.0"
+    "@solana/web3.js" "^1.56.2"
+    bs58 "^5.0.0"
+    debug "^4.3.4"
+
+"@metaplex-foundation/beet@0.7.2", "@metaplex-foundation/beet@>=0.1.0", "@metaplex-foundation/beet@^0.7.1":
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/@metaplex-foundation/beet/-/beet-0.7.2.tgz#fa4726e4cfd4fb6fed6cddc9b5213c1c2a2d0b77"
   integrity sha512-K+g3WhyFxKPc0xIvcIjNyV1eaTVJTiuaHZpig7Xx0MuYRMoJLLvhLTnUXhFdR5Tu2l2QSyKwfyXDgZlzhULqFg==
@@ -281,6 +321,24 @@
     ansicolors "^0.3.2"
     bn.js "^5.2.0"
     debug "^4.3.3"
+
+"@metaplex-foundation/cusper@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@metaplex-foundation/cusper/-/cusper-0.0.2.tgz#dc2032a452d6c269e25f016aa4dd63600e2af975"
+  integrity sha512-S9RulC2fFCFOQraz61bij+5YCHhSO9llJegK8c8Y6731fSi6snUSQJdCUqYS8AIgR0TKbQvdvgSyIIdbDFZbBA==
+
+"@metaplex-foundation/mpl-token-metadata@2.11.1":
+  version "2.11.1"
+  resolved "https://registry.yarnpkg.com/@metaplex-foundation/mpl-token-metadata/-/mpl-token-metadata-2.11.1.tgz#b7755c5cc7bae5e98e285dd675fa65b62e9bd881"
+  integrity sha512-FNJhDAFmpXD5K9lstJYXROjUjHQmCHFpzVs4asUpVvtkF645+PGyDtqoUENfVEwoUPY8ZT6Exs7d0exRgYqxUA==
+  dependencies:
+    "@metaplex-foundation/beet" "^0.7.1"
+    "@metaplex-foundation/beet-solana" "^0.4.0"
+    "@metaplex-foundation/cusper" "^0.0.2"
+    "@solana/spl-token" "^0.3.6"
+    "@solana/web3.js" "^1.66.2"
+    bn.js "^5.2.0"
+    debug "^4.3.4"
 
 "@metaplex-foundation/rustbin@^0.3.0", "@metaplex-foundation/rustbin@^0.3.1":
   version "0.3.5"
@@ -367,6 +425,23 @@
     "@solana/spl-token" "^0.4.0"
     "@solana/web3.js" "^1.77.3"
     big.js "^6.2.1"
+
+"@orca-so/common-sdk@0.6.11", "@orca-so/common-sdk@^0.6.9":
+  version "0.6.11"
+  resolved "https://registry.yarnpkg.com/@orca-so/common-sdk/-/common-sdk-0.6.11.tgz#ddb96aff66d1f75b28c8c48969df8462662e1d3a"
+  integrity sha512-7MJs71F8XJsYCx3+agsLc3MMGnzAC8l3FDbUq0qP3lEPI6B5IS/u2iKU4rWkK3IqIkynWcvuYL6WCi+90vu52w==
+  dependencies:
+    decimal.js "^10.5.0"
+    tiny-invariant "^1.3.1"
+
+"@orca-so/whirlpools-sdk@^0.13.14":
+  version "0.13.19"
+  resolved "https://registry.yarnpkg.com/@orca-so/whirlpools-sdk/-/whirlpools-sdk-0.13.19.tgz#b0880567661378f25f225a739eae66d569da2fda"
+  integrity sha512-xA0qE1oSF2DDt8oD/lM7fpcoVOfUhzMpwMvQzo5BvA+2dXjC7z2aqh/jLdNwV0XxBUaJ68m1ZW92YdaJhVC4Fg==
+  dependencies:
+    "@orca-so/common-sdk" "0.6.11"
+    decimal.js "^10.5.0"
+    tiny-invariant "^1.3.1"
 
 "@project-serum/anchor@^0.11.1":
   version "0.11.1"
@@ -538,6 +613,23 @@
     "@solana/web3.js" "^1.90.0"
     bs58 "^5.0.0"
     jito-ts "^3.0.1"
+
+"@reflectcx/delta-neutral@^2.2.6":
+  version "2.2.6"
+  resolved "https://registry.yarnpkg.com/@reflectcx/delta-neutral/-/delta-neutral-2.2.6.tgz#829d69424404a90b92326b4c578a506bfe01a167"
+  integrity sha512-+Ad+I12HdbCVHoisDPHKbrEt6lE2CmWSxkLb3ohORE4106KI3qGQuKC/JCvw9LVZcxKP0oKKXGCUz6a2twfTTQ==
+  dependencies:
+    "@coral-xyz/anchor" "0.29.0"
+    "@drift-labs/sdk" "^2.117.0-beta.6"
+    "@metaplex-foundation/beet" "0.7.2"
+    "@metaplex-foundation/beet-solana" "^0.4.1"
+    "@metaplex-foundation/mpl-token-metadata" "2.11.1"
+    "@orca-so/common-sdk" "^0.6.9"
+    "@orca-so/whirlpools-sdk" "^0.13.14"
+    "@solana/spl-token" "^0.4.12"
+    "@solana/web3.js" "^1.98.0"
+    bn.js "5.2.1"
+    decimal.js "^10.5.0"
 
 "@solana/buffer-layout-utils@^0.2.0":
   version "0.2.0"
@@ -722,7 +814,7 @@
     buffer-layout "^1.2.0"
     dotenv "10.0.0"
 
-"@solana/spl-token@^0.3.7":
+"@solana/spl-token@^0.3.6", "@solana/spl-token@^0.3.7":
   version "0.3.11"
   resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.3.11.tgz#cdc10f9472b29b39c8983c92592cadd06627fb9a"
   integrity sha512-bvohO3rIMSVL24Pb+I4EYTJ6cL82eFpInEXD/I8K8upOGjpqHsKUoAempR/RnUlI1qSFNyFlWJfu6MNUgfbCQQ==
@@ -732,7 +824,7 @@
     "@solana/spl-token-metadata" "^0.1.2"
     buffer "^6.0.3"
 
-"@solana/spl-token@^0.4.0":
+"@solana/spl-token@^0.4.0", "@solana/spl-token@^0.4.12":
   version "0.4.13"
   resolved "https://registry.yarnpkg.com/@solana/spl-token/-/spl-token-0.4.13.tgz#8f65c3c2b315e1a00a91b8d0f60922c6eb71de62"
   integrity sha512-cite/pYWQZZVvLbg5lsodSovbetK/eA24gaR0eeUeMuBAMNrT8XFCwaygKy0N2WSg3gSyjjNpIeAGBAKZaY/1w==
@@ -814,7 +906,7 @@
     rpc-websockets "^9.0.0"
     superstruct "^1.0.4"
 
-"@solana/web3.js@^1.30.2", "@solana/web3.js@^1.77.3", "@solana/web3.js@^1.95.8", "@solana/web3.js@^1.98.0":
+"@solana/web3.js@^1.30.2", "@solana/web3.js@^1.66.2", "@solana/web3.js@^1.77.3", "@solana/web3.js@^1.95.8", "@solana/web3.js@^1.98.0":
   version "1.98.0"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.98.0.tgz#21ecfe8198c10831df6f0cfde7f68370d0405917"
   integrity sha512-nz3Q5OeyGFpFCR+erX2f6JPt3sKhzhYcSycBCSPkWjzSVDh/Rr1FqTVMRe58FKO16/ivTUcuJjeS5MyBvpkbzA==
@@ -1327,7 +1419,7 @@ bluebird@^3.5.1:
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
 
-bn.js@^5.0.0, bn.js@^5.1.0, bn.js@^5.1.2, bn.js@^5.2.0, bn.js@^5.2.1:
+bn.js@5.2.1, bn.js@^5.0.0, bn.js@^5.1.0, bn.js@^5.1.2, bn.js@^5.2.0, bn.js@^5.2.1:
   version "5.2.1"
   resolved "https://registry.yarnpkg.com/bn.js/-/bn.js-5.2.1.tgz#0bc527a6a0d18d0aa8d5b0538ce4a77dccfa7b70"
   integrity sha512-eXRvHzWyYPBuB4NBy0cmYQjGitUrtqwbvlzP3G6VFnNRbsZQIxQ10PbKKHt8gZ/HW/D/747aDl+QkDqg3KQLMQ==
@@ -1601,6 +1693,11 @@ decimal.js@^10.4.3:
   version "10.4.3"
   resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-10.4.3.tgz#1044092884d245d1b7f65725fa4ad4c6f781cc23"
   integrity sha512-VBBaLc1MgL5XpzgIP7ny5Z6Nx3UrRkIViUkPUdtl9aya5amy3De1gsUUSB1g3+3sExYNjCAsAznmukyxCb1GRA==
+
+decimal.js@^10.5.0:
+  version "10.5.0"
+  resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-10.5.0.tgz#0f371c7cf6c4898ce0afb09836db73cd82010f22"
+  integrity sha512-8vDa8Qxvr/+d94hSh5P3IJwI5t8/c0KsMp+g8bNw9cY2icONa5aPfvKeieW1WlG0WQYwwhJ7mjui2xtiePQSXw==
 
 deep-eql@^4.1.3:
   version "4.1.4"
@@ -3114,7 +3211,7 @@ text-table@^0.2.0:
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
   integrity sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==
 
-tiny-invariant@^1.0.6:
+tiny-invariant@^1.0.6, tiny-invariant@^1.3.1:
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/tiny-invariant/-/tiny-invariant-1.3.3.tgz#46680b7a873a0d5d10005995eb90a70d74d60127"
   integrity sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg==

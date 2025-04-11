@@ -32,6 +32,7 @@
 		"@ellipsis-labs/phoenix-sdk": "1.4.2",
 		"@grpc/grpc-js": "^1.13.1",
 		"@pythnetwork/pyth-solana-receiver": "0.8.0",
+		"@reflectcx/delta-neutral": "^2.2.6",
 		"@switchboard-xyz/on-demand": "2.3.2",
 		"anchor-bankrun": "^0.5.0",
 		"axios": "^1.8.4",
@@ -53,7 +54,7 @@
 		"lint": "eslint . --ext ts --quiet",
 		"lint:fix": "eslint . --ext ts --fix",
 		"update-idl": "cp target/idl/drift.json sdk/src/idl/drift.json",
-		"prepare-sim-env": "solana-test-validator --bpf-program J1TnP8zvVxbtF5KFp5xRmWuvG9McnhzmBd9XGfCyuxFP ./program-dumps/jit.so --bpf-program dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH ./target/deploy/drift.so --bpf-program FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH ./target/deploy/pyth.so"
+		"prepare-sim-env": "solana-test-validator --bpf-program RfFQKgC21r41VR3mBwJybVKGuxKmKHWWUVyB8MwLdrE ./program-dumps/reflect.so --bpf-program J1TnP8zvVxbtF5KFp5xRmWuvG9McnhzmBd9XGfCyuxFP ./program-dumps/jit.so --bpf-program dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH ./target/deploy/drift.so --bpf-program FsJ3A3u2vn5cTVofAjvy6y5kwABJAqYWpe4975bi2epH ./target/deploy/pyth.so"
 	},
 	"engines": {
 		"node": ">=12"
